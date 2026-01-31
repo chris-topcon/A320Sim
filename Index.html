@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fenix A320 Control Panel</title>
+	
+	<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.png">
+	
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #0a0a0a; 
+            color: #d1d5db; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            overflow: auto;
+        }
+        .panel-bg { 
+            background: linear-gradient(145deg, #2c2e33, #1e2024);
+            border: 2px solid #374151;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5), 0 20px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        .panel-label {
+            color: #9ca3af;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        .toggle-switch {
+            width: 44px;
+            height: 74px;
+            background: #111;
+            border-radius: 6px;
+            border: 2px solid #333;
+            position: relative;
+            cursor: pointer;
+        }
+        .handle {
+            width: 28px;
+            height: 36px;
+            background: #4b5563;
+            border-radius: 4px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.1s ease-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            pointer-events: none;
+        }
+        .pos-top { top: 4px; background: #6b7280; }
+        .pos-mid { top: 17px; background: #4b5563; }
+        .pos-bot { top: 30px; background: #374151; }
+
+        .rotary-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .knob {
+            width: 54px;
+            height: 54px;
+            background: #2a2c2f;
+            border-radius: 50%;
+            border: 3px solid #1a1b1e;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.1);
+            position: relative;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .knob-indicator {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            width: 4px;
+            height: 18px;
+            background: #e2e8f0;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .korry-btn {
+            width: 70px;
+            height: 70px;
+            background: #1a1a1a;
+            border: 3px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .korry-btn:active { transform: scale(0.96); }
+        .korry-text {
+            font-size: 10px;
+            font-weight: 800;
+            text-align: center;
+            width: 100%;
+            height: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: all 0.2s ease;
+        }
+        
+        .test-btn {
+            width: 60px;
+            height: 40px;
+            background: #151515;
+            border: 2px solid #2a2a2a;
+            border-radius: 4px;
+            box-shadow: 0 4px 0 #000, inset 0 1px 1px rgba(255,255,255,0.1);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.05s;
+        }
+        .test-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #000;
+        }
+        .test-btn-text {
+            font-size: 8px;
+            font-weight: 900;
+            color: #ccc;
+            line-height: 1;
+            text-align: center;
+        }
+
+        /* Annunciator States */
+        .light-on { color: #3b82f6; text-shadow: 0 0 12px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.5); opacity: 1; }
+        .light-avail { color: #22c55e; text-shadow: 0 0 12px #22c55e, 0 0 20px rgba(34, 197, 94, 0.5); opacity: 1; }
+        .light-fault { color: #f97316; text-shadow: 0 0 12px #f97316, 0 0 20px rgba(249, 115, 22, 0.5); opacity: 1; }
+        .light-off { color: #1a1a1a; text-shadow: none; opacity: 0.15; }
+
+        .grid-lines {
+            background-image: radial-gradient(#ffffff05 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .section-divider {
+            border-left: 2px solid rgba(0,0,0,0.3);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-8 grid-lines">
+
+    <div class="panel-bg p-10 rounded-xl flex gap-12 items-start shadow-2xl mb-8">
+        <!-- EXT LT PANEL -->
+        <div class="flex flex-col">
+            <h1 class="panel-label text-sm tracking-[0.4em] mb-8 text-center uppercase">Ext Lt</h1>
+            <div class="grid grid-rows-2 gap-12">
+                <div class="flex gap-8">
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">STROBE</span><div class="toggle-switch" onclick="cycleSwitch('STROBE')"><div id="h-STROBE" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-1">AUTO</span><span class="mt-auto">OFF</span></div></div>
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">BEACON</span><div class="toggle-switch" onclick="cycleSwitch('BEACON')"><div id="h-BEACON" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-auto">OFF</span></div></div>
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">WING</span><div class="toggle-switch" onclick="cycleSwitch('WING')"><div id="h-WING" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-auto">OFF</span></div></div>
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">NAV & LOGO</span><div class="toggle-switch" onclick="cycleSwitch('NAV')"><div id="h-NAV" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>2</span><span class="mt-1">1</span><span class="mt-auto">OFF</span></div></div>
+                </div>
+                <div class="flex gap-8">
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">RWY TURN OFF</span><div class="toggle-switch" onclick="cycleSwitch('RWY')"><div id="h-RWY" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-auto">OFF</span></div></div>
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">LAND L</span><div class="toggle-switch" onclick="cycleSwitch('LAND_L')"><div id="h-LAND_L" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-1">OFF</span><span class="mt-auto">RETR</span></div></div>
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">LAND R</span><div class="toggle-switch" onclick="cycleSwitch('LAND_R')"><div id="h-LAND_R" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-1">OFF</span><span class="mt-auto">RETR</span></div></div>
+                    <div class="flex flex-col items-center"><span class="panel-label text-[9px] mb-2">NOSE</span><div class="toggle-switch" onclick="cycleSwitch('NOSE')"><div id="h-NOSE" class="handle pos-bot"></div></div><div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>T.O</span><span class="mt-1">TAXI</span><span class="mt-auto">OFF</span></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-divider self-stretch"></div>
+
+        <!-- APU & SIGNS -->
+        <div class="flex flex-col h-full gap-16">
+            <div class="flex flex-col items-center">
+                <h1 class="panel-label text-sm tracking-[0.4em] mb-8 text-center">APU</h1>
+                <div class="flex gap-6">
+                    <div class="flex flex-col items-center gap-3">
+                        <span class="panel-label text-[8px]">MASTER SW</span>
+                        <div id="apu-master-btn" onclick="triggerMobiFlightToggle('APU_MASTER')" class="korry-btn">
+                            <div id="apu-master-fault" class="korry-text light-off">FAULT</div>
+                            <div id="apu-master-on" class="korry-text light-off">ON</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center gap-3">
+                        <span class="panel-label text-[8px]">START</span>
+                        <div id="apu-start-btn" onclick="triggerMobiFlightToggle('APU_START')" class="korry-btn">
+                            <div id="apu-start-avail" class="korry-text light-off">AVAIL</div>
+                            <div id="apu-start-on" class="korry-text light-off">ON</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col items-center mt-auto">
+                <h1 class="panel-label text-[10px] tracking-[0.2em] mb-4">SIGNS</h1>
+                <div class="flex items-end gap-10">
+                    <div class="flex flex-col items-center">
+                        <span class="panel-label text-[9px] mb-2 uppercase">Seat Belts</span>
+                        <div class="toggle-switch" onclick="cycleSwitch('BELTS')"><div id="h-BELTS" class="handle pos-bot"></div></div>
+                        <div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-2 h-10"><span>ON</span><span class="mt-auto">OFF</span></div>
+                    </div>
+                    <div class="flex flex-col items-center mb-4">
+                        <div class="test-btn" onmousedown="sendCommand('1 (>L:S_ECAM_TO)')" onmouseup="sendCommand('0 (>L:S_ECAM_TO)')">
+                            <div class="test-btn-text">T.O</div>
+                            <div class="test-btn-text">CONFIG</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PEDESTAL CONTROLS -->
+    <div class="flex gap-8 w-full max-w-4xl justify-center">
+        <div class="panel-bg p-8 rounded-xl flex flex-col items-center shadow-2xl flex-1">
+            <h1 class="panel-label text-xs tracking-[0.4em] mb-10 uppercase">ATC / TCAS</h1>
+            <div class="flex gap-12 items-center justify-center">
+                <div class="flex flex-col items-center">
+                    <div class="flex justify-between w-32 px-2 mb-4"><span class="panel-label text-[10px]">STBY</span><span class="panel-label text-[10px]">AUTO</span><span class="panel-label text-[10px]">ON</span></div>
+                    <div class="rotary-container" onclick="cycleSwitch('XPNDR_MODE')"><div id="k-XPNDR_MODE" class="knob" style="transform: rotate(-45deg);"><div class="knob-indicator"></div></div></div>
+                    <span class="panel-label text-[10px] mt-6 uppercase">Mode</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="flex justify-between w-32 px-1 mb-4"><span class="panel-label text-[10px]">STBY</span><span class="panel-label text-[10px]">TA</span><span class="panel-label text-[10px]">TA/RA</span></div>
+                    <div class="rotary-container" onclick="cycleSwitch('TCAS_MODE')"><div id="k-TCAS_MODE" class="knob" style="transform: rotate(-45deg);"><div class="knob-indicator"></div></div></div>
+                    <span class="panel-label text-[10px] mt-6 uppercase">TCAS</span>
+                </div>
+            </div>
+        </div>
+        <div class="panel-bg p-8 rounded-xl flex flex-col items-center shadow-2xl flex-1">
+            <h1 class="panel-label text-xs tracking-[0.4em] mb-10 uppercase">Weather</h1>
+            <div class="flex gap-16 items-center justify-center">
+                <div class="flex flex-col items-center">
+                    <span class="panel-label text-[10px] mb-4">SYS</span>
+                    <div class="toggle-switch" onclick="cycleSwitch('WX_SYS')"><div id="h-WX_SYS" class="handle pos-bot"></div></div>
+                    <div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-4 h-10"><span>2</span><span class="mt-1">OFF</span><span class="mt-auto">1</span></div>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="panel-label text-[10px] mb-4">PWS</span>
+                    <div class="toggle-switch" onclick="cycleSwitch('WX_PWS')"><div id="h-WX_PWS" class="handle pos-bot"></div></div>
+                    <div class="flex flex-col text-[8px] items-center text-zinc-500 font-bold mt-4 h-10"><span>AUTO</span><span class="mt-auto">OFF</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-8 flex items-center gap-3 bg-black/50 px-4 py-2 rounded-full border border-white/10">
+        <div id="conn-indicator" class="w-3 h-3 rounded-full bg-red-600"></div>
+        <span id="conn-text" class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">FSUIPC Offline</span>
+    </div>
+
+    <script>
+        const WS_URL = "ws://localhost:2048/fsuipc/";
+        let socket = null;
+        let lastInputTime = {}; 
+        
+        const controls = {
+            STROBE:  { var: "L:S_OH_EXT_LT_STROBE", pos: 3, state: 0 }, 
+            BEACON:  { var: "L:S_OH_EXT_LT_BEACON", pos: 2, state: 0 }, 
+            WING:    { var: "L:S_OH_EXT_LT_WING", pos: 2, state: 0 },   
+            NAV:     { var: "L:S_OH_EXT_LT_NAV_LOGO", pos: 3, state: 0 }, 
+            RWY:     { var: "L:S_OH_EXT_LT_RWY_TURNOFF", pos: 2, state: 0 }, 
+            LAND_L:  { var: "L:S_OH_EXT_LT_LANDING_L", pos: 3, state: 0 }, 
+            LAND_R:  { var: "L:S_OH_EXT_LT_LANDING_R", pos: 3, state: 0 }, 
+            NOSE:    { var: "L:S_OH_EXT_LT_NOSE", pos: 3, state: 0 },    
+            BELTS:   { var: "L:S_OH_SIGNS", pos: 2, state: 0 }, 
+            XPNDR_MODE: { var: "L:S_XPDR_OPERATION, Number", pos: 3, state: 0 },
+            TCAS_MODE:  { var: "L:S_XPDR_MODE", pos: 3, state: 0 },
+            WX_SYS:     { var: "L:S_WR_SYS", pos: 3, state: 0 },
+            WX_PWS:     { var: "L:S_WR_PRED_WS", pos: 2, state: 0 },
+            APU_MASTER: { var: "L:S_OH_ELEC_APU_MASTER", state: 0 },
+            APU_START:  { var: "L:S_OH_ELEC_APU_START", state: 0 }
+        };
+
+        const statusVars = {
+            "L:I_OH_ELEC_APU_MASTER_ON": "apu-master-on",
+            "L:I_OH_ELEC_APU_MASTER_FAULT": "apu-master-fault",
+            "L:I_OH_ELEC_APU_START_ON": "apu-start-on",
+            "L:I_OH_ELEC_APU_START_AVAIL": "apu-start-avail"
+        };
+
+        function connect() {
+            socket = new WebSocket(WS_URL, "fsuipc");
+            socket.onopen = () => {
+                document.getElementById('conn-indicator').style.backgroundColor = '#22c55e';
+                document.getElementById('conn-text').innerText = "Live Sync Active";
+                setupMonitoring();
+            };
+            socket.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if (msg.data) handleData(msg.data);
+            };
+            socket.onclose = () => {
+                document.getElementById('conn-indicator').style.backgroundColor = '#dc2626';
+                document.getElementById('conn-text').innerText = "Disconnected";
+                setTimeout(connect, 2000);
+            };
+        }
+
+        function setupMonitoring() {
+            const vars = [
+                ...Object.values(controls).map(c => ({ name: c.var })),
+                ...Object.keys(statusVars).map(v => ({ name: v })),
+                { name: "L:S_CONFIG_TEST" }
+            ];
+            socket.send(JSON.stringify({ command: "vars.declare", name: "FenixPanel", vars }));
+            setInterval(() => {
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ command: "vars.read", name: "FenixPanel" }));
+                }
+            }, 50); // Increased polling frequency for smoother status lights
+        }
+
+        function handleData(data) {
+            const now = Date.now();
+            
+            for (const [id, ctrl] of Object.entries(controls)) {
+                if (lastInputTime[id] && (now - lastInputTime[id] < 1200)) continue;
+                const val = data[ctrl.var];
+                if (val !== undefined) {
+                    const simState = Math.round(val);
+                    if (ctrl.state !== simState) {
+                        ctrl.state = simState;
+                        updateVisuals(id);
+                    }
+                }
+            }
+
+            for (const [lVar, elementId] of Object.entries(statusVars)) {
+                const val = data[lVar];
+                const el = document.getElementById(elementId);
+                if (el && val !== undefined) {
+                    const isActive = Math.round(val) > 0;
+                    el.classList.remove('light-off', 'light-on', 'light-avail', 'light-fault');
+                    if (isActive) {
+                        if (elementId.includes('avail')) el.classList.add('light-avail');
+                        else if (elementId.includes('fault')) el.classList.add('light-fault');
+                        else el.classList.add('light-on');
+                    } else {
+                        el.classList.add('light-off');
+                    }
+                }
+            }
+        }
+
+        function cycleSwitch(id) {
+            const ctrl = controls[id];
+            ctrl.state = (ctrl.state + 1) % ctrl.pos;
+            lastInputTime[id] = Date.now();
+            updateVisuals(id);
+            sendCommand(`${ctrl.state} (>${ctrl.var})`);
+        }
+
+        function updateVisuals(id) {
+            const ctrl = controls[id];
+            const handle = document.getElementById(`h-${id}`);
+            if (handle) {
+                handle.className = "handle";
+                if (ctrl.state === 0) handle.classList.add('pos-bot');
+                else if (ctrl.state === 1) handle.classList.add(ctrl.pos === 2 ? 'pos-top' : 'pos-mid');
+                else if (ctrl.state === 2) handle.classList.add('pos-top');
+            }
+            const knob = document.getElementById(`k-${id}`);
+            if (knob) {
+                const rotation = (ctrl.state * 45) - 45;
+                knob.style.transform = `rotate(${rotation}deg)`;
+            }
+        }
+
+        function triggerMobiFlightToggle(id) {
+            const ctrl = controls[id];
+            lastInputTime[id] = Date.now();
+            // Using a standard toggle logic for Fenix master/start buttons
+            sendCommand(`(L:${id === 'APU_MASTER' ? 'S_OH_ELEC_APU_MASTER' : 'S_OH_ELEC_APU_START'}) ! (>L:${id === 'APU_MASTER' ? 'S_OH_ELEC_APU_MASTER' : 'S_OH_ELEC_APU_START'})`);
+        }
+
+        function sendCommand(code) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ command: "vars.calc", code }));
+            }
+        }
+
+        connect();
+    </script>
+</body>
+</html>
